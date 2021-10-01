@@ -1,0 +1,14 @@
+services: # アプリケーションを動かすための各要素
+  docker-grove: # 任意の名称
+    restart: always # 実行時に再起動するかどうか
+    build: . # ComposeFileを実行し、ビルドされるときのpath
+    container_name: 'docker-grove' # コンテナ名
+    working_dir: '/root/'
+    #privileged: true #特権起動使わない
+    devices:
+      - "/dev/gpiomem"
+      - "/dev/i2c-1"
+    tty: true # docker-compose up したコンテナを起動させ続ける
+    volumes:
+      - ./opt:/root/opt
+      - ./opt:/root/learn
