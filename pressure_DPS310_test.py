@@ -76,7 +76,7 @@ If don't use SPI.   = XXXX XXX0
 OP_MODE = 0x07
 # 111 - Background Mode Continous pressure and temperature measurement
 # 0000 0111 = 0x07
-'''
+'''DPS310 data sheet P.32
 Bits 7 to 4 are read-only and various ready statuses.
 Bit 3 is reserved.
 MEAS_CTRL   | 2:0   | rw    | Set measurement mode and type:
@@ -120,7 +120,7 @@ class pressure_sensor_DPS310():
         self.bus.write_byte_data(ADDRESS, 0x09, INT_AND_FIFO_CONF)
         self.bus.write_byte_data(ADDRESS, 0x08, OP_MODE)
 
-    def getTwosComplement(self, raw, length):
+    def __getTwosComplement(self, raw, length):
        value = raw
        if raw & (1 << (length - 1)):
            value = raw - (1 << length)
@@ -132,18 +132,18 @@ class pressure_sensor_DPS310():
         for i in range(0x10, 0x22):
             reg[i] = self.bus.read_byte_data(ADDRESS,i)
         Factors = {}
-        Factors['c0'] = self.getTwosComplement(((reg[0x10]<<8 | reg[0x11])>>4), 12)
-        Factors['c1'] = self.getTwosComplement(((reg[0x11] & 0x0F)<<8 | reg[0x12]), 12)
-        Factors['c00'] = self.getTwosComplement((((reg[0x13]<<8 | reg[0x14])<<8 | reg[0x15])>>4), 20)
-        Factors['c10'] = self.getTwosComplement((((reg[0x15] & 0x0F)<<8 | reg[0x16])<<8 | reg[0x17]), 20)
-        Factors['c01'] = self.getTwosComplement((reg[0x18]<<8 | reg[0x19]), 16)
-        Factors['c11'] = self.getTwosComplement((reg[0x1A]<<8 | reg[0x1B]), 16)
-        Factors['c20'] = self.getTwosComplement((reg[0x1C]<<8 | reg[0x1D]), 16)
-        Factors['c21'] = self.getTwosComplement((reg[0x1E]<<8 | reg[0x1F]), 16)
-        Factors['c30'] = self.getTwosComplement((reg[0x20]<<8 | reg[0x21]), 16)
+        Factors['c0'] = self.__getTwosComplement(((reg[0x10]<<8 | reg[0x11])>>4), 12)
+        Factors['c1'] = self.__getTwosComplement(((reg[0x11] & 0x0F)<<8 | reg[0x12]), 12)
+        Factors['c00'] = self.__getTwosComplement((((reg[0x13]<<8 | reg[0x14])<<8 | reg[0x15])>>4), 20)
+        Factors['c10'] = self.__getTwosComplement((((reg[0x15] & 0x0F)<<8 | reg[0x16])<<8 | reg[0x17]), 20)
+        Factors['c01'] = self.__getTwosComplement((reg[0x18]<<8 | reg[0x19]), 16)
+        Factors['c11'] = self.__getTwosComplement((reg[0x1A]<<8 | reg[0x1B]), 16)
+        Factors['c20'] = self.__getTwosComplement((reg[0x1C]<<8 | reg[0x1D]), 16)
+        Factors['c21'] = self.__getTwosComplement((reg[0x1E]<<8 | reg[0x1F]), 16)
+        Factors['c30'] = self.__getTwosComplement((reg[0x20]<<8 | reg[0x21]), 16)
         return Factors
 
-    def calc_temp(self, raw_temp, Factors):
+    def __calc_temp(self, raw_temp, Factors):
         scaled_temp = raw_temp / SCALE_FACTOR # Traw_sc = Traw/kT
         compd_temp = Factors['c0'] * 0.5 + Factors['c1'] * scaled_temp # Tcomp (°C) = c0*0.5 + c1*Traw_sc
         return scaled_temp, compd_temp
@@ -153,12 +153,12 @@ class pressure_sensor_DPS310():
         # read raw temperature
         for i in range(0x03, 0x06):
             reg[i] = self.bus.read_byte_data(ADDRESS,i)
-        raw_temp = self.getTwosComplement(((reg[0x03]<<16) | (reg[0x04]<<8) | reg[0x05]), 24)
+        raw_temp = self.__getTwosComplement(((reg[0x03]<<16) | (reg[0x04]<<8) | reg[0x05]), 24)
         # calculate temperature
-        scaled_temp, compd_temp = self.calc_temp(raw_temp, Factors)
+        scaled_temp, compd_temp = self.__calc_temp(raw_temp, Factors)
         return scaled_temp, compd_temp
 
-    def calc_press(self, raw_press, scaled_temp, Factors):
+    def __calc_press(self, raw_press, scaled_temp, Factors):
         # Praw_sc = Praw/kP
         scaled_press = raw_press / SCALE_FACTOR
         # Pcomp(Pa) = c00 + Praw_sc*(c10 + Praw_sc *(c20+ Praw_sc *c30)) 
@@ -173,8 +173,8 @@ class pressure_sensor_DPS310():
         reg = {}
         for i in range(0x00, 0x03):
             reg[i] = self.bus.read_byte_data(ADDRESS,i)
-        raw_press = self.getTwosComplement(((reg[0x00]<<16) | (reg[0x01]<<8) | reg[0x02]), 24)
-        compd_press = self.calc_press(raw_press,scaled_temp, Factors)
+        raw_press = self.__getTwosComplement(((reg[0x00]<<16) | (reg[0x01]<<8) | reg[0x02]), 24)
+        compd_press = self.__calc_press(raw_press,scaled_temp, Factors)
         return compd_press
 
 def main():
