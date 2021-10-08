@@ -6,6 +6,7 @@ import datetime
 
 READ_INTERVAL = 1/128 # [sec]
 FILE_SAVE_INTERVAL = 3600 # [sec]
+SAVE_DIR = 'press_log/'
 
 # i2c address setting
 ADDRESS = 0x77
@@ -97,7 +98,8 @@ MEAS_CTRL   | 2:0   | rw    | Set measurement mode and type:
 '''
 
 # Compensation Scale Factors
-SCALE_FACTOR = 1572864 # Oversampling Rate 2 times (Low Power)
+SCALE_FACTOR_KP = 1572864 # Oversampling Rate 2 times (Low Power)
+SCALE_FACTOR_TP = 524288 # Oversampling Rate 1 (single)
 '''DPS310 data sheet P.15
 Compensation Scale Factors
 Oversampling Rate           | Scale Factor (kP or kT)   | Result shift ( bit 2and 3 address0x09)
@@ -147,7 +149,7 @@ class pressure_sensor_DPS310():
         return Factors
 
     def __calc_temp(self, raw_temp, Factors):
-        scaled_temp = raw_temp / SCALE_FACTOR # Traw_sc = Traw/kT
+        scaled_temp = raw_temp / SCALE_FACTOR_TP # Traw_sc = Traw/kT
         compd_temp = Factors['c0'] * 0.5 + Factors['c1'] * scaled_temp # Tcomp (°C) = c0*0.5 + c1*Traw_sc
         return scaled_temp, compd_temp
 
@@ -163,7 +165,7 @@ class pressure_sensor_DPS310():
 
     def __calc_press(self, raw_press, scaled_temp, Factors):
         # Praw_sc = Praw/kP
-        scaled_press = raw_press / SCALE_FACTOR
+        scaled_press = raw_press / SCALE_FACTOR_KP
         # Pcomp(Pa) = c00 + Praw_sc*(c10 + Praw_sc *(c20+ Praw_sc *c30)) 
         #                + Traw_sc *c01 + Traw_sc *Praw_sc *(c11+Praw_sc*c21) 
         compd_press = Factors['c00'] + scaled_press * (Factors['c10'] + scaled_press\
@@ -191,7 +193,7 @@ def main():
 
     while True:
         today = datetime.date.today()
-        filename = str(today.strftime('%Y%m%d')+'-'+time.strftime('%H%M%S')+'.csv')
+        filename = str(SAVE_DIR + today.strftime('%Y%m%d') + '-' + time.strftime('%H%M%S') + '.csv')
         try:
             with open(filename, 'w', newline='') as f:
                 writer = csv.writer(f)
