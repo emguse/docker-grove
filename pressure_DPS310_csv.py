@@ -183,7 +183,7 @@ class pressure_sensor_DPS310():
         return compd_press
 
 def main():
-    
+    bus = Bus(None)
     INTERVAL = READ_INTERVAL
     timer = multi_timer.multi_timer(INTERVAL) 
 
@@ -196,10 +196,11 @@ def main():
         filename = str(SAVE_DIR + today.strftime('%Y%m%d') + '-' + time.strftime('%H%M%S') + '.csv')
         try:
             with open(filename, 'w', newline='') as f:
+                bus.write_byte_data(ADDRESS, 0x08, OP_MODE)
                 writer = csv.writer(f)
                 file_start_time = time.time()
                 while True:
-                    timer.timer() # Can simply use time.sleep().
+                    timer.timer()
                     if timer.up_state == True:
                         timer.up_state = False
 
@@ -212,7 +213,6 @@ def main():
                     if file_start_time+FILE_SAVE_INTERVAL <= time.time():
                         break
         finally:
-            bus = Bus(None)
             bus.write_byte_data(ADDRESS, 0x08, 0x00)
 
 if __name__ == "__main__":
