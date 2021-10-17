@@ -117,6 +117,9 @@ Oversampling Rate           | Scale Factor (kP or kT)   | Result shift ( bit 2an
 class pressure_sensor_DPS310():
     def __init__(self):
         time.sleep(0.1)
+        self.read_interval = READ_INTERVAL
+        self.adress = ADDRESS
+        self.op_mode = OP_MODE
         # I2C bus
         self.bus = Bus(None)
         # Measurement Settings
@@ -181,6 +184,11 @@ class pressure_sensor_DPS310():
         raw_press = self.__getTwosComplement(((reg[0x00]<<16) | (reg[0x01]<<8) | reg[0x02]), 24)
         compd_press = self.__calc_press(raw_press,scaled_temp, Factors)
         return compd_press
+    
+    def start_measurement(self):
+        self.bus.write_byte_data(self.adress, 0x08, self.op_mode)
+    def stop_measurement(self):
+        self.bus.write_byte_data(self.adress, 0x08, 0x00)
 
 def main():
     bus = Bus(None)
@@ -196,6 +204,7 @@ def main():
         filename = str(SAVE_DIR + today.strftime('%Y%m%d') + '-' + time.strftime('%H%M%S') + '.csv')
         try:
             with open(filename, 'w', newline='') as f:
+                dps310.start_measurement()
                 bus.write_byte_data(ADDRESS, 0x08, OP_MODE)
                 writer = csv.writer(f)
                 file_start_time = time.time()
@@ -213,7 +222,7 @@ def main():
                     if file_start_time+FILE_SAVE_INTERVAL <= time.time():
                         break
         finally:
-            bus.write_byte_data(ADDRESS, 0x08, 0x00)
+            dps310.stop_measurement()
 
 if __name__ == "__main__":
   main()
