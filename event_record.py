@@ -12,10 +12,11 @@ SAVE_DIR = './press_log/'
 SAVE_LENGTH = 10 # [sec]
 BUTTON_MASK = 2.0 # [sec]
 ACC_READ_RATE = 128 # [Hz]
+REF_DELTA_P =5 # [Pa]
 
-def export_p(d_p):
+def export_p(d_p,trg):
     today = datetime.date.today()
-    filename = str(SAVE_DIR + today.strftime('%Y%m%d') + '-' + time.strftime('%H%M%S') + '_p.csv')
+    filename = str(SAVE_DIR + today.strftime('%Y%m%d') + '-' + time.strftime('%H%M%S') + trg +'_p.csv')
     try:
         with open(filename, 'w', newline='') as f:
             writer = csv.writer(f)
@@ -25,9 +26,9 @@ def export_p(d_p):
             print("Export Complete")
     except:
         print("File export error")
-def export_a(d_a):
+def export_a(d_a,trg):
     today = datetime.date.today()
-    filename = str(SAVE_DIR + today.strftime('%Y%m%d') + '-' + time.strftime('%H%M%S') + '_a.csv')
+    filename = str(SAVE_DIR + today.strftime('%Y%m%d') + '-' + time.strftime('%H%M%S') + trg + '_a.csv')
     try:
         with open(filename, 'w', newline='') as f:
             writer = csv.writer(f)
@@ -56,6 +57,8 @@ def main():
     d_press = deque(maxlen=int(ivent_length))
     d_acc = deque(maxlen=int(ivent_length))
 
+    last_p = 0
+
     while True:
         try:
             dps310.start_measurement()
@@ -71,17 +74,21 @@ def main():
                     #print(str(time.time()) + "," + str(press))
                     press_data = [str(time.time()),str(press)]
                     d_press.append(press_data)
+                    if last_p != 0:
+                        dp = abs(last_p - press)
+                        if dp >= REF_DELTA_P:
+                            export_p(d_press,"dp")
+                        last_p = press
                 if adxl345_timer.up_state == True:
                     adxl345_timer.up_state = False
                     # process
                     acc_data = adxl345.getAxes(True)
                     acc_value = acc_data.values()
                     d_acc.append(acc_value)
-
                 if gpio.input(BUTTON_PIN) and button_mask.up_state == True:
                     button_mask.up_state = False
-                    export_p(d_press)
-                    export_a(d_acc)
+                    export_p(d_press,'button')
+                    export_a(d_acc,'button')              
         finally:
             dps310.stop_measurement()
             gpio.cleanup()
