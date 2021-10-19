@@ -185,6 +185,11 @@ class pressure_sensor_DPS310():
         compd_press = self.__calc_press(raw_press,scaled_temp, Factors)
         return compd_press
     
+    def get_pressure(self, Factors):
+        scaled_temp ,temperature = self.read_temperature(Factors) # read and compensation temperature
+        press = self.read_pressure(scaled_temp, Factors) # read and compensation pressure
+        return press
+
     def start_measurement(self):
         self.bus.write_byte_data(self.adress, 0x08, self.op_mode)
     def stop_measurement(self):
