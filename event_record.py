@@ -12,7 +12,8 @@ SAVE_DIR = './press_log/'
 SAVE_LENGTH = 10 # [sec]
 BUTTON_MASK = 2.0 # [sec]
 ACC_READ_RATE = 128 # [Hz]
-REF_DELTA_P =5 # [Pa]
+REF_DELTA_P = 20 # [Pa]
+REF_DELTA_ACC = 0.3 # [g]
 
 def export_p(d_p,trg):
     today = datetime.date.today()
@@ -58,6 +59,9 @@ def main():
     d_acc = deque(maxlen=int(ivent_length))
 
     last_p = 0
+    last_ax = 0
+    last_ay = 0
+    last_az = 0
 
     while True:
         try:
@@ -69,15 +73,15 @@ def main():
                 if dps310_timer.up_state == True:
                     dps310_timer.up_state = False
                     # process
-                    scaled_temp ,temperature = dps310.read_temperature(Factors) # read and compensation temperature
-                    press = dps310.read_pressure(scaled_temp, Factors) # read and compensation pressure
+                    press = dps310.get_pressure(Factors)
                     #print(str(time.time()) + "," + str(press))
                     press_data = [str(time.time()),str(press)]
                     d_press.append(press_data)
-                    if last_p != 0:
-                        dp = abs(last_p - press)
-                        if dp >= REF_DELTA_P:
-                            export_p(d_press,"dp")
+                    if button_mask.up_state == True:
+                        if last_p != 0:
+                            dp = abs(last_p - press)
+                            if dp >= REF_DELTA_P:
+                                export_p(d_press,"dp")
                         last_p = press
                 if adxl345_timer.up_state == True:
                     adxl345_timer.up_state = False
@@ -85,10 +89,27 @@ def main():
                     acc_data = adxl345.getAxes(True)
                     acc_value = acc_data.values()
                     d_acc.append(acc_value)
+                    ax, ay, az = acc_value
+                    if button_mask.up_state == True:
+                        if last_ax != 0:
+                            dax = abs(last_ax - ax)
+                            if dax >= REF_DELTA_ACC:
+                                export_a(d_acc, 'dax')
+                        last_ax = ax
+                        if last_ay != 0:
+                            day_ = abs(last_ay - ay)
+                            if day_ >= REF_DELTA_ACC:
+                                export_a(d_acc, 'day')
+                        last_ay = ay
+                        if last_az != 0:
+                            daz = abs(last_az - az)
+                            if daz >= REF_DELTA_ACC:
+                                export_a(d_acc, 'daz')
+                        last_az = az
                 if gpio.input(BUTTON_PIN) and button_mask.up_state == True:
                     button_mask.up_state = False
-                    export_p(d_press,'button')
-                    export_a(d_acc,'button')              
+                    export_p(d_press, 'button')
+                    export_a(d_acc, 'button')              
         finally:
             dps310.stop_measurement()
             gpio.cleanup()
