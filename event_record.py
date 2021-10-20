@@ -77,12 +77,13 @@ def main():
                     #print(str(time.time()) + "," + str(press))
                     press_data = [str(time.time()),str(press)]
                     d_press.append(press_data)
-                    if button_mask.up_state == True:
-                        if last_p != 0:
-                            dp = abs(last_p - press)
+                    if last_p != 0:
+                        dp = abs(last_p - press)
+                        if button_mask.up_state == True:
                             if dp >= REF_DELTA_P:
+                                button_mask.up_state = False
                                 export_p(d_press,"dp")
-                        last_p = press
+                    last_p = press
                 if adxl345_timer.up_state == True:
                     adxl345_timer.up_state = False
                     # process
@@ -92,16 +93,19 @@ def main():
                     ax, ay, az = acc_value
                     if button_mask.up_state == True:
                         if last_ax != 0:
+                            button_mask.up_state = False
                             dax = abs(last_ax - ax)
                             if dax >= REF_DELTA_ACC:
                                 export_a(d_acc, 'dax')
                         last_ax = ax
                         if last_ay != 0:
+                            button_mask.up_state = False
                             day_ = abs(last_ay - ay)
                             if day_ >= REF_DELTA_ACC:
                                 export_a(d_acc, 'day')
                         last_ay = ay
                         if last_az != 0:
+                            button_mask.up_state = False
                             daz = abs(last_az - az)
                             if daz >= REF_DELTA_ACC:
                                 export_a(d_acc, 'daz')
