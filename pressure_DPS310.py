@@ -4,7 +4,7 @@ import multi_timer
 import csv
 import datetime
 
-READ_INTERVAL = 1/128 # [sec]
+READ_INTERVAL = 1/64 # [sec]
 FILE_SAVE_INTERVAL = 3600 # [sec]
 SAVE_DIR = 'press_log/'
 
@@ -12,10 +12,10 @@ SAVE_DIR = 'press_log/'
 ADDRESS = 0x77
 
 # Pressure Configuration (PRS_CFG) 
-PRESS_CONF = 0x71 
-    # Pressure measurement rate: 0111 XXXX- 128 measurements pr. sec.
-    # Pressure oversampling rate: XXXX 0001 - 2 times (Low Power).  Precision : 1 PaRMS.
-    # 0111 0001 = 0x71 highest measurements rate 
+PRESS_CONF = 0x63
+    # Pressure measurement rate: 0110 XXXX- 64 measurements pr. sec.
+    # Pressure oversampling rate: XXXX 0011 - 8 times.  Precision : 0.4 PaRMS.
+    # 0111 0001 = 0x63 
 '''DPS310 data sheet P.29 - 30
 Pressure measurement rate: **)      |Pressure oversampling rate:
 0000 - 1 measurements pr. sec.      |0000 - Single. (Low Precision)
@@ -33,11 +33,11 @@ in Background mode only             |*) Note: Use in combination with a bit shif
 '''
 
 # Temperature Configuration(TMP_CFG) 
-TEMP_CONF = 0xF0
+TEMP_CONF = 0xE0
     # Temperature measurement: 1XXX XXXX - External sensor (in pressure sensor MEMS element)
-    # Temperature measurement rate: X111 XXXX - 128 measurements pr. sec.
+    # Temperature measurement rate: X110 XXXX - 64 measurements pr. sec.
     # Temperature oversampling (precision): 0000 - single. (Default) - Measurement time 3.6 ms.
-    # 1111 0000 = 0xF0 highest measurements rate 
+    # 1110 0000 = 0xE0
 '''DPS310 data sheet P.31
 Temperature measurement                                 |
 0 - Internal sensor (in ASIC)                           |
@@ -98,7 +98,7 @@ MEAS_CTRL   | 2:0   | rw    | Set measurement mode and type:
 '''
 
 # Compensation Scale Factors
-SCALE_FACTOR_KP = 1572864 # Oversampling Rate 2 times (Low Power)
+SCALE_FACTOR_KP = 7864320 # Oversampling Rate 8 times
 SCALE_FACTOR_TP = 524288 # Oversampling Rate 1 (single)
 '''DPS310 data sheet P.15
 Compensation Scale Factors
